@@ -67,7 +67,6 @@ private:
     std::vector<std::string> _filters;
     const TupleDescriptor* _tuple_desc;
     int _slot_num;
-    std::unique_ptr<MemPool> _tuple_pool;
     std::unique_ptr<MysqlScanner> _mysql_scanner;
     std::unique_ptr<TextConverter> _text_converter;
 };
