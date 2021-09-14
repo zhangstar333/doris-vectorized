@@ -40,8 +40,7 @@ namespace doris {
 // corresponding changes to CodegenWriteSlot.
 inline bool TextConverter::write_column(const SlotDescriptor* slot_desc,
                                         vectorized::MutableColumnPtr* column_ptr, const char* data,
-                                        int len, bool copy_string, bool need_escape,
-                                        MemPool* pool) {
+                                        int len, bool copy_string, bool need_escape) {
     //小批量导入只有\N被认为是NULL,没有批量导入的replace_value函数
     if (true == slot_desc->is_nullable()) {
         auto* nullable_column = reinterpret_cast<vectorized::ColumnNullable*>(column_ptr->get());
@@ -61,18 +60,13 @@ inline bool TextConverter::write_column(const SlotDescriptor* slot_desc,
     case TYPE_HLL:
     case TYPE_VARCHAR:
     case TYPE_CHAR: {
-        StringValue str_val(const_cast<char*>(data),len);
-        if (len != 0 && (copy_string || need_escape)) {
-            DCHECK(pool != NULL);
-            char* val_data = reinterpret_cast<char*>(pool->allocate(len));
-            if (need_escape) {
-                unescape_string(data, val_data, &str_val.len);
-            } else {
-                memcpy(val_data, data, len);
-            }
-            str_val.ptr=val_data;
+        fmt::memory_buffer buffer;
+        buffer.append(data, data + len);
+        if (need_escape) {
+            buffer = unescape_string(buffer);
         }
-        reinterpret_cast<vectorized::ColumnString*>(column_ptr)->insert_data(str_val.ptr, str_val.len);
+        reinterpret_cast<vectorized::ColumnString*>(column_ptr)
+                ->insert_data(buffer.data(), buffer.size());
         break;
     }
 

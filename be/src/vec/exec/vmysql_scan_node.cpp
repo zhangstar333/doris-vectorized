@@ -56,11 +56,6 @@ Status VMysqlScanNode::prepare(RuntimeState* state) {
         return Status::InternalError("new a mysql scanner failed.");
     }
 
-    _tuple_pool.reset(new (std::nothrow) MemPool(mem_tracker().get())); 
-    if (_tuple_pool.get() == NULL) {
-        return Status::InternalError("new a mem pool failed.");
-    }
-
     _text_converter.reset(new (std::nothrow) TextConverter('\\'));
     if (_text_converter.get() == NULL) {
         return Status::InternalError("new a text convertor failed.");
@@ -131,7 +126,6 @@ Status VMysqlScanNode::get_next(RuntimeState* state, vectorized::Block* block, b
         }
         int j = 0;
         for (int i = 0; i < _slot_num; ++i) {
-
             auto slot_desc = _tuple_desc->slots()[i];
             columns.emplace_back(slot_desc->get_empty_mutable_column());
 
@@ -140,7 +134,8 @@ Status VMysqlScanNode::get_next(RuntimeState* state, vectorized::Block* block, b
             }
             if (data[j] == nullptr) {
                 if (slot_desc->is_nullable()) {
-                    auto* nullable_column = reinterpret_cast<vectorized::ColumnNullable*>(columns[i].get());
+                    auto* nullable_column =
+                            reinterpret_cast<vectorized::ColumnNullable*>(columns[i].get());
                     nullable_column->insert_data(nullptr, 0);
                 } else {
                     std::stringstream ss;
@@ -165,8 +160,7 @@ Status VMysqlScanNode::get_next(RuntimeState* state, vectorized::Block* block, b
 Status VMysqlScanNode::write_text_slot(char* value, int value_length, SlotDescriptor* slot,
                                        vectorized::MutableColumnPtr* column_ptr,
                                        RuntimeState* state) {
-    if (!_text_converter->write_column(slot, column_ptr, value, value_length, true, false,
-                                       _tuple_pool.get())) {
+    if (!_text_converter->write_column(slot, column_ptr, value, value_length, true, false)) {
         std::stringstream ss;
         ss << "Fail to convert mysql value:'" << value << "' to " << slot->type() << " on column:`"
            << slot->col_name() + "`";
@@ -180,7 +174,6 @@ Status VMysqlScanNode::close(RuntimeState* state) {
         return Status::OK();
     }
     RETURN_IF_ERROR(exec_debug_action(TExecNodePhase::CLOSE));
-    _tuple_pool.reset();
     return ExecNode::close(state);
 }
 void VMysqlScanNode::debug_string(int indentation_level, std::stringstream* out) const {
