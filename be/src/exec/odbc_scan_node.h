@@ -54,6 +54,11 @@ public:
     // No use
     virtual Status set_scan_ranges(const std::vector<TScanRangeParams>& scan_ranges);
 
+    const TupleDescriptor* get_tuple_desc() { return _tuple_desc; }
+    TextConverter* get_text_converter() { return _text_converter.get(); }
+    ODBCConnector* get_odbc_scanner() { return _odbc_scanner.get(); }
+    bool is_init() { return _is_init; }
+
 protected:
     // Write debug string of this into out.
     virtual void debug_string(int indentation_level, std::stringstream* out) const;

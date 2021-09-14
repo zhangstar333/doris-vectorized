@@ -18,6 +18,8 @@
 #ifndef DORIS_BE_SRC_QUERY_EXEC_TEXT_CONVERTER_HPP
 #define DORIS_BE_SRC_QUERY_EXEC_TEXT_CONVERTER_HPP
 
+#include <sql.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include "olap/utils.h"
@@ -34,6 +36,7 @@
 #include "util/types.h"
 #include "vec/columns/column_nullable.h"
 #include "vec/common/assert_cast.h"
+
 namespace doris {
 
 // Note: this function has a codegen'd version.  Changing this function requires
@@ -44,7 +47,7 @@ inline bool TextConverter::write_column(const SlotDescriptor* slot_desc,
     //小批量导入只有\N被认为是NULL,没有批量导入的replace_value函数
     if (true == slot_desc->is_nullable()) {
         auto* nullable_column = reinterpret_cast<vectorized::ColumnNullable*>(column_ptr->get());
-        if (len == 2 && data[0] == '\\' && data[1] == 'N') {
+        if (len == SQL_NULL_DATA || (len == 2 && data[0] == '\\' && data[1] == 'N')) {
             nullable_column->insert_data(nullptr, 0);
             return true;
         } else {
