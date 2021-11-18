@@ -74,6 +74,7 @@
 #include "vec/exec/vunion_node.h"
 #include "vec/exec/vintersect_node.h"
 #include "vec/exec/vexcept_node.h"
+#include "vec/exec/vanalytic_eval_node.h"
 #include "vec/exprs/vexpr.h"
 namespace doris {
 
@@ -379,6 +380,7 @@ Status ExecNode::create_node(RuntimeState* state, ObjectPool* pool, const TPlanN
         case TPlanNodeType::INTERSECT_NODE:
         case TPlanNodeType::EXCEPT_NODE:
         case TPlanNodeType::ES_HTTP_SCAN_NODE:
+        case TPlanNodeType::ANALYTIC_EVAL_NODE:
             break;
         default: {
             const auto& i = _TPlanNodeType_VALUES_TO_NAMES.find(tnode.node_type);
@@ -506,8 +508,12 @@ Status ExecNode::create_node(RuntimeState* state, ObjectPool* pool, const TPlanN
 
         return Status::OK();
     case TPlanNodeType::ANALYTIC_EVAL_NODE:
-        *node = pool->add(new AnalyticEvalNode(pool, tnode, descs));
-        break;
+        if (state->enable_vectorized_exec()) {
+            *node = pool->add(new vectorized::VAnalyticEvalNode(pool, tnode, descs));
+        } else {
+            *node = pool->add(new AnalyticEvalNode(pool, tnode, descs));
+        }
+        return Status::OK();
 
     case TPlanNodeType::MERGE_NODE:
         *node = pool->add(new MergeNode(pool, tnode, descs));
