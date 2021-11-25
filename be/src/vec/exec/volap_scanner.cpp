@@ -25,7 +25,7 @@
 #include "vec/core/block.h"
 #include "vec/exec/volap_scan_node.h"
 #include "vec/exprs/vexpr_context.h"
-
+#include "vec/runtime/vdatetime_value.h"
 namespace doris::vectorized {
 
 VOlapScanner::VOlapScanner(RuntimeState* runtime_state, VOlapScanNode* parent, bool aggregation,
@@ -223,8 +223,8 @@ void VOlapScanner::_convert_row_to_block(std::vector<vectorized::MutableColumnPt
         }
         case TYPE_DATETIME: {
             uint64_t value = *reinterpret_cast<uint64_t*>(ptr);
-            DateTimeValue data(value);
-            assert_cast<ColumnVector<Int128>*>(column_ptr)
+            VecDateTimeValue data(value);
+            assert_cast<ColumnVector<Int64>*>(column_ptr)
                     ->insert_data(reinterpret_cast<char*>(&data), 0);
             break;
         }
@@ -235,9 +235,9 @@ void VOlapScanner::_convert_row_to_block(std::vector<vectorized::MutableColumnPt
             value |= *(unsigned char*)(ptr + 1);
             value <<= 8;
             value |= *(unsigned char*)(ptr);
-            DateTimeValue date;
+            VecDateTimeValue date;
             date.from_olap_date(value);
-            assert_cast<ColumnVector<Int128>*>(column_ptr)
+            assert_cast<ColumnVector<Int64>*>(column_ptr)
                     ->insert_data(reinterpret_cast<char*>(&date), 0);
             break;
         }

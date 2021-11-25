@@ -26,7 +26,7 @@
 #include "vec/common/assert_cast.h"
 #include "vec/exprs/vexpr.h"
 #include "vec/exprs/vexpr_context.h"
-
+#include "vec/runtime/vdatetime_value.h"
 namespace doris {
 namespace vectorized {
 VMysqlResultWriter::VMysqlResultWriter(BufferControlBlock* sinker,
@@ -130,9 +130,9 @@ Status VMysqlResultWriter::_add_one_column(const ColumnPtr& column_ptr) {
         }
         if constexpr (type == TYPE_DATETIME) {
             char buf[64];
-            auto time_num = assert_cast<const ColumnVector<Int128>&>(*column).get_data()[i];
-            DateTimeValue time_val;
-            memcpy(&time_val, &time_num, sizeof(Int128));
+            auto time_num = assert_cast<const ColumnVector<Int64>&>(*column).get_data()[i];
+            VecDateTimeValue time_val;
+            memcpy(&time_val, &time_num, sizeof(Int64));
             // TODO(zhaochun), this function has core risk
             char* pos = time_val.to_string(buf);
             buf_ret = _vec_buffers[i]->push_string(buf, pos - buf - 1);
